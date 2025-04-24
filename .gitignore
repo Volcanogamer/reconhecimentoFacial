@@ -6,3 +6,5 @@ venv
 __pycache__
 media
 db.sqlite3
+20180402-114759-vggface2.pt
+db.sqlite3
