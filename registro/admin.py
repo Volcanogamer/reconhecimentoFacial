@@ -5,9 +5,11 @@ class ColetaFacesInLine(admin.StackedInline):
     model = ColetaFaces
     extra = 0
 
-class usuarioAdmin(admin.ModelAdmin):
-    readonly_fields = []
+class UsuarioAdmin(admin.ModelAdmin):
+    readonly_fields = ['id_usuario', 'data_cadastro']
     inlines = (ColetaFacesInLine,)
+    list_display = ('nome', 'cpf', 'situacao', 'data_cadastro')
+    search_fields = ('nome', 'cpf')
 
-admin.site.register(Usuario,usuarioAdmin)
+admin.site.register(Usuario, UsuarioAdmin)
 admin.site.register(Treinamento)

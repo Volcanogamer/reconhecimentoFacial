@@ -49,6 +49,7 @@ class Treinamento(models.Model):
     def __str__(self):
         return 'Classificador (frontalface)'
 
+    # Garante que só exista um modelo de treinamento salvo no banco
     def clean(self):
         model = self.__class__
         if model.objects.exclude(id=self.id).exists():

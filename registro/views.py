@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect#, get_object_or_404
 from .forms import UsuarioForm, ColetaFacesForm
 from .models import Usuario, ColetaFaces
 from django.http import StreamingHttpResponse
@@ -12,6 +12,7 @@ def gen_detect_face(camera_detection):
         frame = camera_detection.detect_face()  
         if frame is None:
             continue
+        # Transmite esse frame como um stream
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
 
@@ -36,6 +37,9 @@ def criar_coleta_faces(request, usuario_id):
 
     print(usuario_id)
     usuario = Usuario.objects.get(id=usuario_id)
+    
+    # Tratamento quando usuario é inválido
+    #usuario = get_object_or_404(Usuario, id=usuario_id)
     
     context = {
         'usuario': usuario, # Passa o objeto usuario p/ o template

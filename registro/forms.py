@@ -15,7 +15,6 @@ class UsuarioForm(forms.ModelForm):
 class MultipleFileInput(forms.ClearableFileInput):
     allow_multiple_selected = True
 
-
 class MultipleFileField(forms.FileField):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("widget", MultipleFileInput())

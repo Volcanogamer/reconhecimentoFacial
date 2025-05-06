@@ -34,12 +34,14 @@ class VideoCamera(object):
         if not ret:
             return None
 
+        # Converte p/ formato padrão do facenet
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         pil_image = Image.fromarray(rgb_frame)
 
+        # Centro da camera
         altura, largura, _ = frame.shape
         centro_x, centro_y = int(largura / 2), int(altura / 2)
-        a, b = 140, 180  # semi-eixos da elipse
+        a, b = 140, 180
 
         # Detecta faces
         boxes, _ = self.mtcnn.detect(pil_image)
