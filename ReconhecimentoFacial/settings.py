@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     #Registro
-    'registro',
+    'registro.apps.RegistroConfig',
 ]
 
 MIDDLEWARE = [
