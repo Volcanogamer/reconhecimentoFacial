@@ -40,17 +40,19 @@ class ColetaFaces(models.Model):
     image = models.ImageField(upload_to='roi/')
 
 class Treinamento(models.Model):
-    modelo = models.FileField(upload_to='treinamento/')
+    usuario = models.OneToOneField(Usuario, on_delete=models.CASCADE)  # campo para linkar ao usuário
+    embedding = models.BinaryField(null=True, blank=True) # campo para armazenar vetor em bytes
+    modelo = models.FileField(upload_to='treinamento/', null=True, blank=True)  # opcional
 
     class Meta:
         verbose_name = 'Treinamento'
         verbose_name_plural = 'Treinamentos'
 
     def __str__(self):
-        return 'Classificador (frontalface)'
+        return f'Classificador (frontalface) - {self.usuario}'
 
-    # Garante que só exista um modelo de treinamento salvo no banco
     def clean(self):
         model = self.__class__
         if model.objects.exclude(id=self.id).exists():
             raise ValidationError('Só pode existir um único arquivo salvo.')
+
