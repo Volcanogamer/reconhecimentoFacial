@@ -33,3 +33,11 @@ def deletar_fotos_usuario(sender, instance, **kwargs):
             print(f"Pasta do usuário removida: {roi_dir}")
         except Exception as e:
             print(f"Erro ao remover a pasta {roi_dir}: {e}")
+
+    # Apaga a foto de perfil do usuário que está em media/foto/
+    if instance.foto_facial and instance.foto_facial.path and os.path.exists(instance.foto_facial.path):
+        try:
+            os.remove(instance.foto_facial.path)
+            print(f"Foto de perfil removida: {instance.foto_facial.path}")
+        except Exception as e:
+            print(f"Erro ao remover foto de perfil {instance.foto_facial.path}: {e}")
