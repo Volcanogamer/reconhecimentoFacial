@@ -35,14 +35,18 @@ class Usuario(models.Model):
                     break
         super().save(*args, **kwargs)
 
+def caminho_imagem_usuario(instance, filename):
+    return f'roi/{instance.usuario.id_usuario}/{filename}'
+
 class ColetaFaces(models.Model):
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='usuario_coletas')
-    image = models.ImageField(upload_to='roi/')
+    image = models.ImageField(upload_to=caminho_imagem_usuario)
+
 
 class Treinamento(models.Model):
     usuario = models.OneToOneField(Usuario, on_delete=models.CASCADE)  # campo para linkar ao usuário
     embedding = models.BinaryField(null=True, blank=True) # campo para armazenar vetor em bytes
-    modelo = models.FileField(upload_to='treinamento/', null=True, blank=True)  # opcional
+    modelo = models.FileField(upload_to='treinamento/', null=True, blank=True)
 
     class Meta:
         verbose_name = 'Treinamento'

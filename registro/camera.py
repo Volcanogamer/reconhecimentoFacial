@@ -94,7 +94,7 @@ class VideoCamera(object):
                 if box is not None and len(box) == 4:
                     x1, y1, x2, y2 = [int(coord) for coord in box]
 
-                    # Define o aumento em % (por exemplo, 20%)
+                    # Define o aumento em %
                     aumento = 0.10
 
                     largura = x2 - x1

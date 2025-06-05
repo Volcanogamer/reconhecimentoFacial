@@ -61,7 +61,7 @@ def criar_coleta_faces(request, usuario_id):
 def extract(camera_detection, usuario):
     amostra = 0
     numeroAmostras = 10
-    largura, altura = 300, 300
+    largura, altura = 250, 250 # Dimensiona o recorte da foto
     file_paths = []
 
     while amostra < numeroAmostras:
