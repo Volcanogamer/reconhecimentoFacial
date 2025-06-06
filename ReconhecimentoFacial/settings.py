@@ -45,6 +45,8 @@ INSTALLED_APPS = [
 
     #Registro
     'registro.apps.RegistroConfig',
+    # API Django Rest Framework
+    'rest_framework',
 ]
 
 MIDDLEWARE = [

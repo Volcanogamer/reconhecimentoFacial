@@ -1,12 +1,48 @@
 import cv2
 import os
-from django.shortcuts import render, redirect#, get_object_or_404
+from django.shortcuts import render, redirect  #, get_object_or_404
 from .forms import UsuarioForm, ColetaFacesForm
-from .models import Usuario, ColetaFaces
+from .models import Usuario, ColetaFaces, Treinamento, RegistroPonto
 from django.http import StreamingHttpResponse
 from registro.camera import VideoCamera
 
-camera_detection = VideoCamera() # Chama classe VideoCamera
+# ===================== API REST =====================
+from rest_framework import viewsets
+from registro.api.serializers import (
+    UsuarioSerializer,
+    ColetaFacesSerializer,
+    TreinamentoSerializer,
+    RegistroPontoSerializer
+)
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+
+# ViewSet da API - Usuário
+class UsuarioViewSet(viewsets.ModelViewSet):
+    queryset = Usuario.objects.all()
+    serializer_class = UsuarioSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+# ViewSet da API - Coleta de Faces
+class ColetaFacesViewSet(viewsets.ModelViewSet):
+    queryset = ColetaFaces.objects.all()
+    serializer_class = ColetaFacesSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+# ViewSet da API - Treinamento
+class TreinamentoViewSet(viewsets.ModelViewSet):
+    queryset = Treinamento.objects.all()
+    serializer_class = TreinamentoSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+# ViewSet da API - Registro de Ponto
+class RegistroPontoViewSet(viewsets.ModelViewSet):
+    queryset = RegistroPonto.objects.all()
+    serializer_class = RegistroPontoSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+# ===================== INTERFACE WEB =====================
+
+camera_detection = VideoCamera()  # Chama classe VideoCamera
 
 # Captura frame com a face detectada
 def gen_detect_face(camera_detection):
@@ -46,14 +82,14 @@ def criar_coleta_faces(request, usuario_id):
     botao_clicado = request.GET.get('clicked', 'False') == 'True'
 
     context = {
-        'usuario': usuario, # Passa o objeto usuario p/ o template
-        'face_detection': face_detection, # Passa a camera p/ template
+        'usuario': usuario,  # Passa o objeto usuario p/ o template
+        'face_detection': face_detection,  # Passa a camera p/ template
         'valor_botao': botao_clicado,
     }
 
     if botao_clicado:
         print("Cliquei em Extrair Fotos.")
-        context = face_extract(context, usuario) # Chama a função de extração
+        context = face_extract(context, usuario)  # Chama a função de extração
 
     return render(request, 'criar_coleta_faces.html', context)
 
@@ -61,7 +97,7 @@ def criar_coleta_faces(request, usuario_id):
 def extract(camera_detection, usuario):
     amostra = 0
     numeroAmostras = 10
-    largura, altura = 250, 250 # Dimensiona o recorte da foto
+    largura, altura = 250, 250  # Dimensiona o recorte da foto
     file_paths = []
 
     while amostra < numeroAmostras:
@@ -96,16 +132,16 @@ def face_extract(context, usuario):
         context['erro'] = 'Limite máximo de coletas atingido.'
     else:
         files_paths = extract(camera_detection, usuario)
-        print(files_paths) # Faces salvos
+        print(files_paths)  # Faces salvos
 
         for path in files_paths:
             # Cria uma instancia de ColetaFaces e salva imagem
             coleta_faces = ColetaFaces.objects.create(usuario=usuario)
             coleta_faces.image.save(os.path.basename(path), open(path, 'rb'))
-            os.remove(path) # Remove o arquivo temporário criado anteriormente
+            os.remove(path)  # Remove o arquivo temporário criado anteriormente
 
         # Atualiza o contexto com as coletas salvas
         context['file_paths'] = ColetaFaces.objects.filter(usuario__id_usuario=usuario.id_usuario)
-        context['extracao_ok'] = True # Sinaliza que foi um sucesso
+        context['extracao_ok'] = True  # Sinaliza que foi um sucesso
 
     return context

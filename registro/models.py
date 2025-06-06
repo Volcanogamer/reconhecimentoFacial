@@ -60,3 +60,17 @@ class Treinamento(models.Model):
         if model.objects.exclude(id=self.id).exists():
             raise ValidationError('Só pode existir um único arquivo salvo.')
 
+class RegistroPonto(models.Model):
+    TIPO_CHOICES = [
+        ('entrada', 'Entrada'),
+        ('saida', 'Saída'),
+    ]
+
+    id_registro = models.AutoField(primary_key=True)
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='registros_ponto')
+    data = models.DateField(auto_now_add=True)
+    hora = models.TimeField(auto_now_add=True)
+    tipo = models.CharField(max_length=10, choices=TIPO_CHOICES)
+
+    def __str__(self):
+        return f"{self.usuario.nome} - {self.tipo} em {self.data} {self.hora}"
