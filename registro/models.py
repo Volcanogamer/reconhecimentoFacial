@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 from random import randint
 import re
+import os
 
 def validar_cpf(cpf):
     cpf = re.sub(r'[^0-9]', '', cpf)
@@ -18,7 +19,7 @@ class Usuario(models.Model):
     id_usuario = models.SlugField(max_length=200, unique=True)
     foto_facial = models.ImageField(upload_to='foto/')
     nome = models.CharField(max_length=100)
-    cpf = models.CharField(max_length=18, unique=True) # validators=[validar_cpf]
+    cpf = models.CharField(max_length=18, unique=True)  # validators=[validar_cpf]
     data_cadastro = models.DateField(auto_now_add=True)
     situacao = models.BooleanField(default=False)
 
@@ -42,10 +43,14 @@ class ColetaFaces(models.Model):
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='usuario_coletas')
     image = models.ImageField(upload_to=caminho_imagem_usuario)
 
+    def delete(self, *args, **kwargs):
+        if self.image and os.path.isfile(self.image.path):
+            os.remove(self.image.path)
+        super().delete(*args, **kwargs)
 
 class Treinamento(models.Model):
-    usuario = models.OneToOneField(Usuario, on_delete=models.CASCADE)  # campo para linkar ao usuário
-    embedding = models.BinaryField(null=True, blank=True) # campo para armazenar vetor em bytes
+    usuario = models.OneToOneField(Usuario, on_delete=models.CASCADE)
+    embedding = models.BinaryField(null=True, blank=True)
     modelo = models.FileField(upload_to='treinamento/', null=True, blank=True)
 
     class Meta:

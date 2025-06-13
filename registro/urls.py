@@ -1,5 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+from registro import views
 from .views import (
     criar_usuario,
     criar_coleta_faces,
@@ -7,7 +8,8 @@ from .views import (
     UsuarioViewSet,
     ColetaFacesViewSet,
     TreinamentoViewSet,
-    RegistroPontoViewSet
+    RegistroPontoViewSet,
+    
 )
 
 # Rotas automáticas para a API REST
@@ -25,4 +27,8 @@ urlpatterns = [
 
     # Rotas da API sob o prefixo /api/
     path('api/', include(router.urls)),
+
+    # Reconhecimento em tempo real
+    path('reconhecimento/', views.reconhecimento_view, name='reconhecimento'),
+    path('video_reconhecimento/', views.video_reconhecimento, name='video_reconhecimento'),
 ]

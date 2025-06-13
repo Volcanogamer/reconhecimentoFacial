@@ -76,7 +76,7 @@ class VideoCamera(object):
         cv2.ellipse(frame, (centro_x, centro_y), (a, b), 0, 0, 360, cor_elipse, 4)
 
         ret, jpeg = cv2.imencode('.jpg', frame)
-        return jpeg.tobytes()
+        return jpeg.tobytes(), None
     
     # Recorte do rosto na camera
     def sample_faces(self, frame):
