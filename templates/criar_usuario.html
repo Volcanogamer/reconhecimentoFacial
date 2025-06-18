@@ -1,16 +1,39 @@
-{% extends 'base2.html' %}
+{% extends 'base.html' %}
+{% load form_filters %}
 {% block content %}
 
-<div class="row align-items-center justify-content-center">
-    <form class="col-md-6 border shadow-sm p-3" method="POST" enctype="multipart/form-data">
-        {% csrf_token %}
-        <h2>Cadastrar Usuário</h2>
-        {{form.errors}}
-        {{form}}
+<div class="row justify-content-center">
+    <div class="col-md-20 col-lg-20">
+        <div class="border rounded-4 p-4 shadow-sm bg-dark text-light">
+            <h2 class="mb-4">
+                👤 Cadastrar Usuário
+            </h2>
 
-        <button class="btn btn-outline-primary mt-3" type="submit">
-            Salvar e continuar
-        </button>
-    </form>
+            {% if form.errors %}
+                <div class="alert alert-danger">
+                    Corrija os erros abaixo para continuar.
+                </div>
+            {% endif %}
+
+            <form method="POST" enctype="multipart/form-data" novalidate>
+                {% csrf_token %}
+                
+                {% for field in form %}
+                    <div class="mb-4">
+                        <label class="form-label">{{ field.label }}</label>
+                        {{ field|add_class:"form-control form-control-lg" }}
+                        {% if field.errors %}
+                            <div class="text-danger small mt-1">{{ field.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+
+                <button type="submit" class="btn btn-primary btn-lg w-100 mt-3">
+                    Salvar e continuar
+                </button>
+            </form>
+        </div>
+    </div>
 </div>
+
 {% endblock %}
