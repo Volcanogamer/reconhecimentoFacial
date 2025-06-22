@@ -1,5 +1,7 @@
 import cv2
 import os
+from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import render, redirect, get_object_or_404
 from .forms import UsuarioForm, ColetaFacesForm
 from .models import Usuario, ColetaFaces, Treinamento, RegistroPonto
@@ -9,6 +11,7 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from django.utils import timezone
 from registro.utils.reconhecimento_webcam import ReconhecimentoCamera
+from django.contrib.auth import authenticate, login
 
 # ===================== API REST =====================
 from registro.api.serializers import (
@@ -39,11 +42,10 @@ class RegistroPontoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
 # ===================== INTERFACE WEB =====================
-camera_detection = VideoCamera()
-
-def gen_detect_face(camera_detection):
+def gen_detect_face():
+    camera = VideoCamera()
     while True:
-        frame, usuario_id = camera_detection.detect_face()
+        frame, usuario_id = camera.detect_face()
         if frame is None:
             continue
 
@@ -52,16 +54,14 @@ def gen_detect_face(camera_detection):
             if usuario:
                 RegistroPonto.objects.create(usuario=usuario, horario=timezone.now())
 
-        yield (b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n\r\n")
-
-def gerar_streaming():
-    return StreamingHttpResponse(
-        gen_detect_face(camera_detection),
-        content_type="multipart/x-mixed-replace;boundary=frame",
-    )
+        yield (b"--frame\r\n"
+               b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n\r\n")
 
 def face_detection(request):
-    return gerar_streaming()
+    return StreamingHttpResponse(
+        gen_detect_face(),
+        content_type="multipart/x-mixed-replace;boundary=frame"
+    )
 
 def criar_usuario(request):
     if request.method == "POST":
@@ -195,3 +195,66 @@ def video_reconhecimento(request):
     
 def index(request):
     return render(request, 'index.html')
+
+def login(request):
+    return render(request, 'admin/login.html')
+
+# Dashboard -> carrega todas as informações vinculadas ao usuário
+@staff_member_required
+def dashboard(request):
+    return render(request, 'admin/dashboard.html')
+
+@staff_member_required
+def dashboard_usuarios(request):
+    usuarios = Usuario.objects.all()
+    return render(request, 'admin/conteudo/usuarios.html', {'usuarios': usuarios})
+
+@staff_member_required
+def dashboard_treinamentos(request):
+    treinamentos = Treinamento.objects.select_related('usuario').all()
+    return render(request, 'admin/conteudo/treinamentos.html', {'treinamentos': treinamentos})
+
+@staff_member_required
+def dashboard_registros(request):
+    registros = RegistroPonto.objects.select_related('usuario').order_by('-data', '-hora')
+    return render(request, 'admin/conteudo/registros.html', {'registros': registros})
+
+# Carrega todas as infs dos usuarios no dashboard
+@staff_member_required
+def dashboard_usuario_detalhes(request, id_usuario):
+    usuario = get_object_or_404(Usuario, id=id_usuario)
+    coletas = ColetaFaces.objects.filter(usuario=usuario)
+
+    if request.method == "POST":
+        form = UsuarioForm(request.POST, request.FILES, instance=usuario)
+
+        # Converte a string do dropdown para booleano
+        situacao_valor = request.POST.get("situacao")
+        if situacao_valor in ["True", "False"]:
+            usuario.situacao = True if situacao_valor == "True" else False
+
+        if form.is_valid():
+            form.save()
+            usuario.save()  # salva o campo situacao
+    else:
+        form = UsuarioForm(instance=usuario)
+
+    return render(request, "admin/conteudo/usuario_detalhes.html", {
+        "form": form,
+        "usuario": usuario,
+        "coletas": coletas,
+    })
+
+@staff_member_required
+def remover_fotos_coleta_selecionadas(request):
+    if request.method == "POST":
+        ids = request.POST.getlist("fotos_remover")
+        if ids:
+            for foto_id in ids:
+                treinamento = Treinamento.objects.filter(id=foto_id).first()
+                if treinamento:
+                    treinamento.delete()
+            messages.success(request, "Fotos selecionadas removidas com sucesso.")
+        else:
+            messages.warning(request, "Nenhuma imagem foi selecionada.")
+    return redirect(request.META.get('HTTP_REFERER', '/'))

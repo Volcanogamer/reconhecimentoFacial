@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     'registro.apps.RegistroConfig',
     # API Django Rest Framework
     'rest_framework',
+    # Exibição detalhada usuarios Dashboard
+    'widget_tweaks',
 ]
 
 MIDDLEWARE = [
@@ -65,6 +67,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [TEMPLATE_DIR],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -119,6 +122,12 @@ TIME_ZONE = 'America/Sao_Paulo'
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
+
+# Login SuperUser
+LOGIN_REDIRECT_URL = '/dashboard/'
+# Ao sair do SuperUser, redirecionar p/ inicio
+LOGOUT_REDIRECT_URL = '/'
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/

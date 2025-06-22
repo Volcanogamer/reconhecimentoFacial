@@ -1,65 +1,81 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<div class="d-flex flex-column flex-lg-row gap-5 justify-content-center p-3">
+<div class="container py-4">
+    <div class="row justify-content-center gx-5">
 
-    <div class="col-md-6 col-lg-4">
-        <div class="h4 pb-2 mb-4 text-dark border-bottom border-dark">
-            Dados do Usuário
-        </div>
+        <!-- Dados do Usuário -->
+        <div class="col-md-5 mb-4">
+            <div class="p-4 rounded shadow-sm">
+                <h4 class="mb-3 border-bottom pb-2">Dados do Usuário</h4>
 
-        <img class="border border-dark border-5 rounded-5 mb-3" src="{{ usuario.foto_facial.url }}" alt="" width="250">
-        <p><strong>Nome:</strong> {{ usuario.nome }} </p>
-        <p><strong>CPF:</strong> {{ usuario.cpf }} </p>
-    </div>
-
-    <div class="col-md-6 col-lg-7">
-
-        {% if not extracao_ok %}
-
-        <!-- Aviso e legenda dinâmica -->
-        <div class="p-3 bg-warning bg-opacity-10 border border-warning rounded mb-3">
-            <strong>Orientação:</strong> {{ legenda_orientacao }}
-        </div>
-
-        <!-- Stream da câmera -->
-        <img class="border rounded-5 mb-3" id="webcam" src="{% url 'face_detection' %}" width="480">
-
-        <!-- Botão de extração -->
-        <form class="mt-3" method="GET" action="{% url 'criar_coleta_faces' usuario.id %}">
-            <button class="btn btn-lg btn-warning" type="submit"
-                onclick="document.getElementById('clicked').value='True';">
-                Extrair foto {{ file_paths|length|add:1 }}/6
-            </button>
-            <input type="hidden" id="clicked" name="clicked" value="False">
-        </form>
-
-        {% else %}
-
-        <!-- Coleta finalizada -->
-        <div class="p-3 bg-success bg-opacity-10 border border-success rounded mb-3">
-            Amostras coletadas com sucesso!
-        </div>
-
-        <h3 class="h5">Amostras Salvas</h3>
-        <div class="d-flex flex-wrap gap-2">
-            {% for file_path in file_paths %}
-            <div class="col-2 mb-3">
-                <img src="{{ file_path.image.url }}" alt="Amostra facial {{ forloop.counter }}" class="card-img-top" width="80">
-                <div class="card-body text-center">
-                    <h6 class="card-title">Face {{ forloop.counter }}</h6>
+                <div class="text-center">
+                    <img src="{{ usuario.foto_facial.url }}" alt="Foto facial" class="img-thumbnail rounded-4 mb-3" width="240">
                 </div>
+
+                <p><strong>Nome:</strong> {{ usuario.nome }}</p>
+                <p><strong>CPF:</strong> {{ usuario.cpf }}</p>
             </div>
-            {% endfor %}
         </div>
 
-        {% endif %}
+        <!-- Câmera e Coleta -->
+        <div class="col-md-7">
+            {% if not extracao_ok %}
 
-        <!-- Mensagem de erro -->
-        {% if erro %}
-        <h5 class="text-danger">{{ erro }}</h5>
-        {% endif %}
+                <!-- Orientação -->
+                <div class="alert alert-warning d-flex align-items-center" role="alert">
+                    <div>
+                        <strong>🟡 Orientação:</strong> {{ legenda_orientacao }}
+                    </div>
+                </div>
 
+                <!-- Webcam -->
+                <div class="text-center mb-4">
+                    <img id="webcam" src="{% url 'face_detection' %}" class="img-fluid rounded shadow" width="480">
+                </div>
+
+                <!-- Botão para capturar -->
+                <form method="GET" action="{% url 'criar_coleta_faces' usuario.id %}" class="text-center">
+                    <input type="hidden" id="clicked" name="clicked" value="False">
+                    <button type="submit" class="btn btn-warning btn-lg px-5 mb-3"
+                        onclick="document.getElementById('clicked').value='True';">
+                        Extrair foto {{ file_paths|length|add:1 }}/6
+                    </button>
+                </form>
+
+            {% else %}
+
+                <!-- Sucesso -->
+                <div class="alert alert-success d-flex align-items-center" role="alert">
+                    ✅ Amostras coletadas com sucesso!
+                </div>
+
+                <h5 class="mb-3">Amostras Salvas</h5>
+
+                <div class="d-flex flex-wrap gap-3 mb-4">
+                    {% for file_path in file_paths %}
+                        <div class="text-center">
+                            <img src="{{ file_path.image.url }}" alt="Amostra {{ forloop.counter }}"
+                                 class="rounded border shadow-sm mb-1" width="100">
+                            <div class="small text-muted">Face {{ forloop.counter }}</div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+            {% endif %}
+
+            {% if erro %}
+                <div class="alert alert-danger mt-3">{{ erro }}</div>
+            {% endif %}
+
+            <!-- Botão voltar sempre visível -->
+            <div class="text-center mt-4">
+                <a href="{% url 'index' %}" class="btn btn-outline-secondary btn-lg px-5">
+                    Voltar à Página Inicial
+                </a>
+            </div>
+        </div>
     </div>
 </div>
+
 {% endblock %}

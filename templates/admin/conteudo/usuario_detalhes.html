@@ -1,0 +1,109 @@
+{% load widget_tweaks %}
+{% load static %}
+
+<h3>Modificar usuário</h3>
+
+<!-- Exibição de mensagens -->
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<!-- Formulário para editar usuário -->
+<form method="POST" enctype="multipart/form-data" class="border p-4 bg-dark text-light rounded">
+    {% csrf_token %}
+
+    <h5>{{ usuario.nome }}</h5>
+
+    <!-- Foto facial -->
+    <div class="mb-3">
+        <label class="form-label">Foto facial:</label>
+        {{ form.foto_facial|add_class:"form-control" }}
+    </div>
+
+    <!-- Nome -->
+    <div class="mb-3">
+        <label class="form-label">Nome</label>
+        {{ form.nome|add_class:"form-control" }}
+    </div>
+
+    <!-- CPF -->
+    <div class="mb-3">
+        <label class="form-label">CPF</label>
+        {{ form.cpf|add_class:"form-control" }}
+    </div>
+
+    <!-- Situação como dropdown -->
+    <div class="mb-3">
+        <label class="form-label">Situação</label>
+        <select name="situacao" class="form-select">
+            <option value="True" {% if usuario.situacao %}selected{% endif %}>Válido</option>
+            <option value="False" {% if not usuario.situacao %}selected{% endif %}>Inválido</option>
+        </select>
+    </div>
+
+    <!-- ID do usuário (somente leitura) -->
+    <div class="mb-3">
+        <label class="form-label">ID do Usuário</label>
+        <input type="text" class="form-control" value="{{ usuario.id_usuario }}" disabled>
+    </div>
+
+    <!-- Data de cadastro (somente leitura) -->
+    <div class="mb-3">
+        <label class="form-label">Data de Cadastro</label>
+        <input type="text" class="form-control" value="{{ usuario.data_cadastro|date:"d/m/Y" }}" disabled>
+    </div>
+
+    <button type="submit" class="btn btn-success">Salvar Alterações</button>
+</form>
+
+<!-- COLETA FACES -->
+<h4 class="mt-5">Imagens de Coleta</h4>
+
+{% if coletas %}
+<form method="POST" action="{% url 'remover_fotos_coleta_selecionadas' %}">
+    {% csrf_token %}
+
+    <!-- Botões de selecionar/desmarcar -->
+    <div class="d-flex gap-2 mb-3">
+        <button type="button" class="btn btn-success btn-sm" onclick="toggleCheckboxes(true)">Selecionar todas</button>
+        <button type="button" class="btn btn-danger btn-sm" onclick="toggleCheckboxes(false)">Desmarcar todas</button>
+    </div>
+
+    <div class="row">
+        {% for coleta in coletas %}
+        <div class="col-md-3 mb-4">
+            <div class="card bg-dark text-light">
+                <img src="{{ coleta.image.url }}" class="card-img-top img-thumbnail" alt="Imagem de coleta">
+                <div class="card-body">
+                    <p class="card-text">ID: {{ coleta.id }}</p>
+                    <div class="form-check">
+                        <input class="form-check-input remover-checkbox" type="checkbox" name="fotos_remover" value="{{ coleta.id }}" id="foto_{{ coleta.id }}">
+                        <label class="form-check-label" for="foto_{{ coleta.id }}">Remover</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <button type="submit" class="btn btn-danger mt-3">Remover selecionadas</button>
+</form>
+{% else %}
+<p class="text-light">Nenhuma imagem de coleta disponível.</p>
+{% endif %}
+
+<script>
+    function toggleCheckboxes(checked) {
+        document.querySelectorAll('.remover-checkbox').forEach(cb => cb.checked = checked);
+    }
+</script>
+
+<!-- Importa o JS personalizado -->
+{% block scripts %}
+<script src="{% static 'registro/selecionar_todas_coletas.js' %}"></script>
+{% endblock %}

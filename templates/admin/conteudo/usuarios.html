@@ -1,0 +1,51 @@
+<!-- templates/admin/conteudo/usuarios.html -->
+<div class="table-responsive">
+    <table class="table table-dark table-hover rounded shadow">
+        <thead class="table-light text-dark">
+            <tr>
+                <th>Nome</th>
+                <th>CPF</th>
+                <th>Situação</th>
+                <th>Data de Cadastro</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for usuario in usuarios %}
+            <tr>
+                <td>
+                    <a href="#" class="text-light text-decoration-underline"
+                        onclick="loadUsuarioDetalhes('{{ usuario.id }}')">
+                        {{ usuario.nome }}
+                    </a>
+                </td>
+                <td>{{ usuario.cpf }}</td>
+                <td>{{ usuario.situacao }}</td>
+                <td>{{ usuario.data_cadastro|date:"d/m/Y" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center">Nenhum usuário encontrado.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+    function loadUsuarioDetalhes(id) {
+        fetch(`/dashboard/usuario/${id}/`)
+            .then(resp => {
+                if (!resp.ok) throw new Error('Erro ao carregar detalhes do usuário');
+                return resp.text();
+            })
+            .then(html => {
+                const conteudo = document.getElementById('conteudo-dashboard');
+                conteudo.innerHTML = html;
+                window.scrollTo(0, 0); // sobe a tela
+            })
+            .catch(err => {
+                console.error('Erro:', err);
+                alert('Erro ao carregar os detalhes do usuário.');
+            });
+    }
+</script>

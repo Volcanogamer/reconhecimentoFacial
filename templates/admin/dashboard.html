@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+
+        <!-- Menu Lateral -->
+        <nav class="col-md-3 col-lg-2 d-md-block bg-dark sidebar text-light py-4">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link text-light" href="#"
+                        onclick="loadContent('usuarios')">Usuários</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-light" href="#" onclick="loadContent('treinamentos')">Treinamentos</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-light" href="#" onclick="loadContent('registros')">Registros</a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Conteúdo Principal -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4" id="conteudo-dashboard">
+            <h3>Bem-vindo ao Painel Administrativo</h3>
+            <p>Escolha uma opção no menu ao lado para visualizar os dados.</p>
+        </main>
+    </div>
+</div>
+
+<script>
+    function loadContent(tipo) {
+    fetch(`/dashboard/${tipo}/`)
+        .then(resp => {
+            if (!resp.ok) throw new Error('Erro na requisição');
+            return resp.text();
+        })
+        .then(html => {
+            document.getElementById('conteudo-dashboard').innerHTML = html;
+        })
+        .catch(err => console.error('Erro:', err));
+    }
+
+    function loadUsuarioDetalhes(id) {
+    fetch(`/dashboard/usuarios/${id}/`)
+        .then(resp => {
+            if (!resp.ok) throw new Error('Erro ao carregar detalhes do usuário.');
+            return resp.text();
+        })
+        .then(html => {
+            document.getElementById('conteudo-dashboard').innerHTML = html;
+        })
+        .catch(err => console.error('Erro:', err));
+    }
+</script>
+{% endblock %}
