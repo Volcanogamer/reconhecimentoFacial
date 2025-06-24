@@ -118,5 +118,5 @@ class ReconhecimentoCamera:
         self.video.release()
 
     def __del__(self):
-        if self.video.isOpened():
+        if hasattr(self, 'video') and self.video is not None:
             self.video.release()

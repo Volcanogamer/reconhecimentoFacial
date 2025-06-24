@@ -1,11 +1,14 @@
 <!-- templates/admin/conteudo/treinamentos.html -->
 <div class="table-responsive">
+    <div class="mt-10 mb-4">
+        <button class="btn btn-primary" onclick="treinar_usuarios_ativos()">Treinar Usuários Ativos</button>
+    </div>
+
     <table class="table table-dark table-hover rounded shadow">
         <thead class="table-light text-dark">
             <tr>
                 <th>Usuário</th>
                 <th>Data do Treinamento</th>
-                <th>Status</th>
             </tr>
         </thead>
         <tbody>
@@ -13,7 +16,6 @@
             <tr>
                 <td>{{ t.usuario.nome }}</td>
                 <td>{{ t.data_treinamento|date:"d/m/Y H:i" }}</td>
-                <td>{{ t.status|default:"-" }}</td>
             </tr>
             {% empty %}
             <tr>
@@ -23,3 +25,35 @@
         </tbody>
     </table>
 </div>
+
+<script>
+    function treinar_usuarios_ativos() {
+        if (!confirm("Deseja iniciar o treinamento apenas dos usuários com situação ativa?")) return;
+
+        fetch("/dashboard/treinamento_ativos/", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": getCSRFToken()
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.mensagem || "Treinamento concluído.");
+            })
+            .catch(error => {
+                console.error("Erro ao treinar:", error);
+                alert("Erro ao iniciar o treinamento.");
+            });
+    }
+
+    // Função para pegar o CSRF token do cookie
+    function getCSRFToken() {
+        const name = 'csrftoken';
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            const [key, value] = cookie.trim().split('=');
+            if (key === name) return value;
+        }
+        return '';
+    }
+</script>

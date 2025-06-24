@@ -51,6 +51,7 @@ class ColetaFaces(models.Model):
 class Treinamento(models.Model):
     usuario = models.OneToOneField(Usuario, on_delete=models.CASCADE)
     embedding = models.BinaryField(null=True, blank=True)
+    data_treinamento = models.DateTimeField(auto_now=True)
     modelo = models.FileField(upload_to='treinamento/', null=True, blank=True)
 
     class Meta:

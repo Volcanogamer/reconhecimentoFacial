@@ -43,9 +43,11 @@ urlpatterns = [
     # Dashboard com todas as infs de cada usuario
     path('dashboard/usuarios/<int:id_usuario>/', views.dashboard_usuario_detalhes, name='dashboard_usuario_detalhes'),
     path('dashboard/remover_fotos_selecionadas/', views.remover_fotos_coleta_selecionadas, name='remover_fotos_coleta_selecionadas'),
-     
     path('dashboard/usuarios/<int:id>/salvar/', views.salvar_usuario, name='salvar_usuario'),
     path('dashboard/remover_fotos_coleta/<int:id_usuario>/', views.remover_fotos_coleta_selecionadas, name='remover_fotos_coleta_selecionadas'),
+
+    # Treinamento Usuarios
+    path('dashboard/treinamento_ativos/', views.treinar_usuarios_ativos, name='treinar_usuarios_ativos'),
 
     # Rotas da API sob o prefixo /api/
     path('api/', include(router.urls)),

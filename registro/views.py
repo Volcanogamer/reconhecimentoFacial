@@ -12,6 +12,10 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from django.utils import timezone
 from registro.utils.reconhecimento_webcam import ReconhecimentoCamera
 from django.contrib.auth import authenticate, login
+from django.views.decorators.csrf import csrf_exempt
+from django.template.loader import render_to_string
+from django.http import JsonResponse
+from django.core.management import call_command
 
 # ===================== API REST =====================
 from registro.api.serializers import (
@@ -216,7 +220,25 @@ def dashboard_treinamentos(request):
 
 @staff_member_required
 def dashboard_registros(request):
+    nome = request.GET.get('nome', '')
+    data = request.GET.get('data', '')
+    tipo = request.GET.get('tipo', '')
+
     registros = RegistroPonto.objects.select_related('usuario').order_by('-data', '-hora')
+
+    if nome:
+        registros = registros.filter(usuario__nome__icontains=nome)
+    if data:
+        registros = registros.filter(data=data)
+    if tipo:
+        registros = registros.filter(tipo=tipo)
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        # Retorna só o fragmento da tabela
+        html = render_to_string('admin/conteudo/_registros_tabela.html', {'registros': registros})
+        return JsonResponse({'html': html})
+
+    # Página completa
     return render(request, 'admin/conteudo/registros.html', {'registros': registros})
 
 # Carrega todas as infs dos usuarios no dashboard
@@ -273,3 +295,13 @@ def remover_fotos_coleta_selecionadas(request, id_usuario):
         messages.success(request, "Fotos removidas com sucesso!")
 
     return redirect('/dashboard/')
+
+# Treinamento dos Usuários admin
+def treinar_usuarios_ativos(request):
+    if request.method == 'POST':
+        try:
+            call_command('treinamento', ativos=True)
+            return JsonResponse({"mensagem": "Treinamento concluído com sucesso."})
+        except Exception as e:
+            return JsonResponse({"erro": str(e)}, status=500)
+    return JsonResponse({"erro": "Método não permitido"}, status=405)

@@ -29,15 +29,30 @@
 
 <script>
     function loadContent(tipo) {
-    fetch(`/dashboard/${tipo}/`)
-        .then(resp => {
-            if (!resp.ok) throw new Error('Erro na requisição');
-            return resp.text();
-        })
-        .then(html => {
-            document.getElementById('conteudo-dashboard').innerHTML = html;
-        })
-        .catch(err => console.error('Erro:', err));
+        fetch(`/dashboard/${tipo}/`)
+            .then(resp => {
+                if (!resp.ok) throw new Error('Erro na requisição');
+                return resp.text();
+            })
+            .then(html => {
+                const container = document.getElementById('conteudo-dashboard');
+                container.innerHTML = html;
+
+                // Executa scripts apenas para a página de treinamentos
+                if (tipo === 'treinamentos') {
+                    const scripts = container.querySelectorAll("script");
+                    scripts.forEach(oldScript => {
+                        const newScript = document.createElement("script");
+                        if (oldScript.src) {
+                            newScript.src = oldScript.src;
+                        } else {
+                            newScript.text = oldScript.textContent;
+                        }
+                        document.body.appendChild(newScript);
+                    });
+                }
+            })
+            .catch(err => console.error('Erro:', err));
     }
 
     function loadUsuarioDetalhes(id) {
@@ -51,5 +66,27 @@
         })
         .catch(err => console.error('Erro:', err));
     }
+
+    document.body.addEventListener('submit', function (e) {
+        if (e.target && e.target.id === 'filtro-form') {
+            e.preventDefault();
+
+            const form = e.target;
+            const params = new URLSearchParams(new FormData(form)).toString();
+
+            fetch(`/dashboard/registros/?${params}`)
+                .then(resp => {
+                    if (!resp.ok) throw new Error("Erro ao filtrar registros.");
+                    return resp.text();
+                })
+                .then(html => {
+                    document.getElementById('conteudo-dashboard').innerHTML = html;
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Erro ao aplicar o filtro.");
+                });
+        }
+    });
 </script>
 {% endblock %}

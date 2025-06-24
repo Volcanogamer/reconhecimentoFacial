@@ -4,7 +4,7 @@ from .models import Usuario, ColetaFaces, RegistroPonto
 class UsuarioForm(forms.ModelForm):
     class Meta:
         model = Usuario
-        fields = ['foto_facial', 'nome', 'cpf', 'situacao']
+        fields = ['foto_facial', 'nome', 'cpf']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
