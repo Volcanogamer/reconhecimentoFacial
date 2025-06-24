@@ -1,10 +1,10 @@
 from django import forms
-from .models import Usuario, ColetaFaces
+from .models import Usuario, ColetaFaces, RegistroPonto
 
 class UsuarioForm(forms.ModelForm):
     class Meta:
         model = Usuario
-        fields = ['foto_facial', 'nome', 'cpf']
+        fields = ['foto_facial', 'nome', 'cpf', 'situacao']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -39,3 +39,15 @@ class ColetaFacesForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             field.widget.attrs['class'] = 'form-control'
+
+'''
+class RegistroPontoForm(forms.ModelForm):
+    class Meta:
+        model = RegistroPonto
+        fields = ['usuario', 'hora', 'tipo']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs['class'] = 'form-control'
+'''

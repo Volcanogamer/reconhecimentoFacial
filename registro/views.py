@@ -244,17 +244,32 @@ def dashboard_usuario_detalhes(request, id_usuario):
         "usuario": usuario,
         "coletas": coletas,
     })
+    
+def salvar_usuario(request, id):
+    usuario = get_object_or_404(Usuario, id=id)
+
+    if request.method == 'POST':
+        form = UsuarioForm(request.POST, request.FILES, instance=usuario)
+
+        # Situação vem de um campo manual
+        situacao = request.POST.get("situacao") == "True"
+
+        if form.is_valid():
+            usuario = form.save(commit=False)
+            usuario.situacao = situacao
+            usuario.save()
+            messages.success(request, "Usuário atualizado com sucesso!")
+        else:
+            messages.error(request, "Erro ao salvar os dados.")
+            print(form.errors)  # Para debug se necessário
+
+    return redirect('/dashboard/')
 
 @staff_member_required
-def remover_fotos_coleta_selecionadas(request):
-    if request.method == "POST":
-        ids = request.POST.getlist("fotos_remover")
-        if ids:
-            for foto_id in ids:
-                treinamento = Treinamento.objects.filter(id=foto_id).first()
-                if treinamento:
-                    treinamento.delete()
-            messages.success(request, "Fotos selecionadas removidas com sucesso.")
-        else:
-            messages.warning(request, "Nenhuma imagem foi selecionada.")
-    return redirect(request.META.get('HTTP_REFERER', '/'))
+def remover_fotos_coleta_selecionadas(request, id_usuario):
+    if request.method == 'POST':
+        fotos_ids = request.POST.getlist('fotos_remover')
+        ColetaFaces.objects.filter(id__in=fotos_ids).delete()
+        messages.success(request, "Fotos removidas com sucesso!")
+
+    return redirect('/dashboard/')

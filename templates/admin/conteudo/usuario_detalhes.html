@@ -1,5 +1,4 @@
 {% load widget_tweaks %}
-{% load static %}
 
 <h3>Modificar usuário</h3>
 
@@ -14,7 +13,9 @@
 {% endif %}
 
 <!-- Formulário para editar usuário -->
-<form method="POST" enctype="multipart/form-data" class="border p-4 bg-dark text-light rounded">
+<form method="POST" enctype="multipart/form-data" 
+      action="{% url 'salvar_usuario' usuario.id %}" 
+      class="border p-4 bg-dark text-light rounded">
     {% csrf_token %}
 
     <h5>{{ usuario.nome }}</h5>
@@ -65,14 +66,8 @@
 <h4 class="mt-5">Imagens de Coleta</h4>
 
 {% if coletas %}
-<form method="POST" action="{% url 'remover_fotos_coleta_selecionadas' %}">
+<form method="POST" action="{% url 'remover_fotos_coleta_selecionadas' usuario.id %}">
     {% csrf_token %}
-
-    <!-- Botões de selecionar/desmarcar -->
-    <div class="d-flex gap-2 mb-3">
-        <button type="button" class="btn btn-success btn-sm" onclick="toggleCheckboxes(true)">Selecionar todas</button>
-        <button type="button" class="btn btn-danger btn-sm" onclick="toggleCheckboxes(false)">Desmarcar todas</button>
-    </div>
 
     <div class="row">
         {% for coleta in coletas %}
@@ -92,6 +87,17 @@
     </div>
 
     <button type="submit" class="btn btn-danger mt-3">Remover selecionadas</button>
+    {% if form.errors %}
+    <div class="alert alert-danger">
+        <ul>
+            {% for field, errors in form.errors.items %}
+                {% for error in errors %}
+                    <li><strong>{{ field }}:</strong> {{ error }}</li>
+                {% endfor %}
+            {% endfor %}
+        </ul>
+    </div>
+{% endif %}
 </form>
 {% else %}
 <p class="text-light">Nenhuma imagem de coleta disponível.</p>
@@ -102,8 +108,3 @@
         document.querySelectorAll('.remover-checkbox').forEach(cb => cb.checked = checked);
     }
 </script>
-
-<!-- Importa o JS personalizado -->
-{% block scripts %}
-<script src="{% static 'registro/selecionar_todas_coletas.js' %}"></script>
-{% endblock %}
