@@ -2,8 +2,12 @@
 
 <style>
     .custom-btn {
-      padding: 4px 15px;
-      font-size: 15px;
+        padding: 4px 15px;
+        font-size: 15px;
+    }
+
+    .me-2 {
+        margin-right: 0.5rem;
     }
 </style>
 
@@ -15,14 +19,15 @@
         <input type="date" name="data" value="{{ request.GET.data }}" class="me-2">
         <select name="tipo" class="me-2">
             <option value="">Todos</option>
-            <option value="entrada" {% if request.GET.tipo == 'entrada' %}selected{% endif %}>Entrada</option>
-            <option value="saida" {% if request.GET.tipo == 'saida' %}selected{% endif %}>Saída</option>
+            <option value="entrada" {% if request.GET.tipo == "entrada" %}selected{% endif %}>Entrada</option>
+            <option value="saida" {% if request.GET.tipo == "saida" %}selected{% endif %}>Saída</option>
         </select>
-        <button type="submit" class="btn btn-primary custom-btn">Filtrar</button>
+        <button type="submit" class="btn btn-primary custom-btn me-2">Filtrar</button>
+        <button type="button" class="btn btn-success custom-btn" onclick="exportarPDF()">Exportar para PDF</button>
     </form>
-    
+
     <div class="table-responsive">
-        <table class="table table-dark table-hover rounded shadow">
+        <table class="table table-dark table-hover rounded shadow" id="tabela-registros">
             <thead class="table-light text-dark">
                 <tr>
                     <th>Usuário</th>
@@ -54,4 +59,21 @@
         </table>
     </div>
 </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+    function exportarPDF() {
+        const element = document.getElementById("registros-content");
+        const opt = {
+            margin:       0.5,
+            filename:     'registros.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2 },
+            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+
+        html2pdf().from(element).set(opt).save();
+    }
+</script>
+
 {% endblock %}

@@ -7,8 +7,7 @@
         <nav class="col-md-3 col-lg-2 d-md-block bg-dark sidebar text-light py-4">
             <ul class="nav flex-column">
                 <li class="nav-item">
-                    <a class="nav-link text-light" href="#"
-                        onclick="loadContent('usuarios')">Usuários</a>
+                    <a class="nav-link text-light" href="#" onclick="loadContent('usuarios')">Usuários</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link text-light" href="#" onclick="loadContent('treinamentos')">Treinamentos</a>
@@ -38,8 +37,8 @@
                 const container = document.getElementById('conteudo-dashboard');
                 container.innerHTML = html;
 
-                // Executa scripts apenas para a página de treinamentos
-                if (tipo === 'treinamentos') {
+                // Executa scripts das páginas carregadas dinamicamente
+                if (tipo === 'treinamentos' || tipo === 'registros') {
                     const scripts = container.querySelectorAll("script");
                     scripts.forEach(oldScript => {
                         const newScript = document.createElement("script");
@@ -56,15 +55,15 @@
     }
 
     function loadUsuarioDetalhes(id) {
-    fetch(`/dashboard/usuarios/${id}/`)
-        .then(resp => {
-            if (!resp.ok) throw new Error('Erro ao carregar detalhes do usuário.');
-            return resp.text();
-        })
-        .then(html => {
-            document.getElementById('conteudo-dashboard').innerHTML = html;
-        })
-        .catch(err => console.error('Erro:', err));
+        fetch(`/dashboard/usuarios/${id}/`)
+            .then(resp => {
+                if (!resp.ok) throw new Error('Erro ao carregar detalhes do usuário.');
+                return resp.text();
+            })
+            .then(html => {
+                document.getElementById('conteudo-dashboard').innerHTML = html;
+            })
+            .catch(err => console.error('Erro:', err));
     }
 
     document.body.addEventListener('submit', function (e) {
