@@ -11,11 +11,18 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from django.utils import timezone
 from registro.utils.reconhecimento_webcam import ReconhecimentoCamera
-from django.contrib.auth import authenticate, login
 from django.views.decorators.csrf import csrf_exempt
 from django.template.loader import render_to_string
 from django.http import JsonResponse
+from django.utils.timezone import localtime
+import json
+import base64
+import numpy as np
+from PIL import Image
+from io import BytesIO
 from django.core.management import call_command
+
+from registro.utils.reconhecimento_webcam import ReconhecimentoCamera
 
 # ===================== API REST =====================
 from registro.api.serializers import (
@@ -266,7 +273,8 @@ def dashboard_usuario_detalhes(request, id_usuario):
         "usuario": usuario,
         "coletas": coletas,
     })
-    
+
+# Salvar/Atualizar infs do usuário no dashboard admin
 def salvar_usuario(request, id):
     usuario = get_object_or_404(Usuario, id=id)
 
@@ -287,6 +295,7 @@ def salvar_usuario(request, id):
 
     return redirect('/dashboard/')
 
+# Remover fotos de coleta selecionadas no dashboard admin
 @staff_member_required
 def remover_fotos_coleta_selecionadas(request, id_usuario):
     if request.method == 'POST':
@@ -305,3 +314,64 @@ def treinar_usuarios_ativos(request):
         except Exception as e:
             return JsonResponse({"erro": str(e)}, status=500)
     return JsonResponse({"erro": "Método não permitido"}, status=405)
+
+@csrf_exempt
+def api_reconhecimento_rosto(request):
+    if request.method == 'POST':
+
+        data = json.loads(request.body)
+        imagem_base64 = data.get("imagem")
+
+        if not imagem_base64:
+            return JsonResponse({"status": "erro", "mensagem": "Imagem não enviada"}, status=400)
+
+        imagem_base64 = imagem_base64.split(",")[1]
+        imagem_bytes = base64.b64decode(imagem_base64)
+
+        img = Image.open(BytesIO(imagem_bytes)).convert('RGB')
+        frame = np.array(img)
+
+        reconhecedor = ReconhecimentoCamera()
+        usuario_id, nome = reconhecedor.reconhecer_numpy(frame)
+
+        if usuario_id:
+            return JsonResponse({"status": "ok", "id_usuario": usuario_id, "nome": nome})
+        else:
+            return JsonResponse({"status": "falha", "mensagem": "Usuário não reconhecido"})
+
+    return JsonResponse({"status": "erro", "mensagem": "Método inválido"}, status=405)
+
+@csrf_exempt
+def api_registrar_ponto(request):
+    print("Chamando a view registrar_ponto")
+    if request.method != 'POST':
+        return JsonResponse({'status': 'erro', 'mensagem': 'Método inválido'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        id_usuario = data.get('id_usuario')
+        if not id_usuario:
+            return JsonResponse({'status': 'erro', 'mensagem': 'ID do usuário não informado'}, status=400)
+
+        # Usa o campo correto do seu modelo
+        usuario = Usuario.objects.get(id=id_usuario)
+
+        agora = localtime()
+
+        RegistroPonto.objects.create(
+            usuario=usuario,
+            data=agora.date(),
+            hora=agora.time(),
+            tipo='entrada'  # ou lógica dinâmica
+        )
+
+        return JsonResponse({'status': 'registrado'})
+
+    except Usuario.DoesNotExist:
+        return JsonResponse({'status': 'erro', 'mensagem': 'Usuário não encontrado'}, status=404)
+
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'erro', 'mensagem': 'JSON inválido'}, status=400)
+
+    except Exception as e:
+        return JsonResponse({'status': 'erro', 'mensagem': f'Erro interno: {str(e)}'}, status=500)

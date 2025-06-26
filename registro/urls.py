@@ -4,6 +4,7 @@ from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
 from registro import views
 from .views import (
+    api_registrar_ponto,
     dashboard_registros,
     dashboard_usuarios,
     dashboard_treinamentos,
@@ -16,7 +17,6 @@ from .views import (
     ColetaFacesViewSet,
     TreinamentoViewSet,
     RegistroPontoViewSet,
-    
 )
 
 # Rotas automáticas para a API REST
@@ -39,7 +39,7 @@ urlpatterns = [
     path('dashboard/usuarios/', dashboard_usuarios, name='dashboard_usuarios'),
     path('dashboard/treinamentos/', dashboard_treinamentos, name='dashboard_treinamentos'),
     path('dashboard/registros/', dashboard_registros, name='dashboard_registros'),
-    
+
     # Dashboard com todas as infs de cada usuario
     path('dashboard/usuarios/<int:id_usuario>/', views.dashboard_usuario_detalhes, name='dashboard_usuario_detalhes'),
     path('dashboard/remover_fotos_selecionadas/', views.remover_fotos_coleta_selecionadas, name='remover_fotos_coleta_selecionadas'),
@@ -49,10 +49,17 @@ urlpatterns = [
     # Treinamento Usuarios
     path('dashboard/treinamento_ativos/', views.treinar_usuarios_ativos, name='treinar_usuarios_ativos'),
 
-    # Rotas da API sob o prefixo /api/
-    path('api/', include(router.urls)),
+    # Reconhecimento de rosto (views manuais – mantenha essas antes do router)
+    path('api/reconhecimento_rosto/', views.api_reconhecimento_rosto, name='api_reconhecimento_rosto'),
+    path('api/registrar_ponto/', api_registrar_ponto, name='api_registrar_ponto'),
 
     # Reconhecimento em tempo real
     path('reconhecimento/', views.reconhecimento_view, name='reconhecimento'),
     path('video_reconhecimento/', views.video_reconhecimento, name='video_reconhecimento'),
-]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    
+    # Rota do DRF por último para evitar conflito
+    path('api/', include(router.urls)),
+]
+
+# Para servir arquivos de mídia no modo de desenvolvimento
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

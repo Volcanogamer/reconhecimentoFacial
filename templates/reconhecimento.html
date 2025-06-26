@@ -1,38 +1,94 @@
-<!DOCTYPE html>
-<html lang="pt-br">
+{% extends 'base.html' %}
+{% block content %}
+<div style="text-align:center;">
+    <h1>Reconhecimento Facial</h1>
 
-<head>
-    <meta charset="UTF-8">
-    <title>Reconhecimento Facial</title>
-    <style>
-        body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f4f4f4;
-            font-family: Arial, sans-serif;
-        }
+    <!-- Exibe o vídeo da câmera -->
+    <video id="camera" autoplay playsinline width="640" height="480"></video>
 
-        h1 {
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        img {
-            border: 4px solid #333;
-            border-radius: 10px;
-        }
-    </style>
-</head>
-
-<body>
-    <div style="text-align:center;">
-        <h1>Reconhecimento Facial</h1>
-        <img src="{% url 'video_reconhecimento' %}" width="640" height="480" />
+    <!-- Preview da imagem reconhecida -->
+    <div id="preview" style="margin-top: 20px; display:none;">
+        <h3 id="nome-usuario"></h3>
+        <img id="rosto-capturado" src="" width="200" />
+        <br>
+        <button id="confirmar-btn" class="btn btn-success mt-3">Confirmar Registro</button>
     </div>
-</body>
+</div>
 
-</html>
+<script>
+    const video = document.getElementById("camera");
+    const preview = document.getElementById("preview");
+    const imgPreview = document.getElementById("rosto-capturado");
+    const nomeUsuario = document.getElementById("nome-usuario");
+    const btnConfirmar = document.getElementById("confirmar-btn");
+
+    // Inicia a câmera
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+            video.srcObject = stream;
+
+            // Espera 3 segundos e envia frame para o backend
+            setTimeout(() => {
+                capturarImagem();
+            }, 1000);
+        })
+        .catch(err => {
+            alert("Erro ao acessar a câmera: " + err);
+        });
+
+    function capturarImagem() {
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext("2d").drawImage(video, 0, 0);
+
+        const imagemBase64 = canvas.toDataURL("image/jpeg");
+
+        // Envia imagem para backend para reconhecimento
+        fetch("{% url 'api_reconhecimento_rosto' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({ imagem: imagemBase64 })
+        })
+            .then(resp => resp.json())
+            .then(data => {
+                console.log("Resposta da API de reconhecimento:", data);
+                if (data.status === "ok") {
+                    nomeUsuario.innerText = "Usuário: " + data.nome;
+                    imgPreview.src = imagemBase64;
+                    preview.style.display = "block";
+
+                    btnConfirmar.onclick = () => {
+                        registrarPonto(data.id_usuario);
+                    };
+                } else {
+                    alert("Usuário não reconhecido.");
+                }
+            });
+    }
+
+    function registrarPonto(id) {
+        console.log("Tentando registrar em:", "{% url 'api_registrar_ponto' %}");
+        fetch("{% url 'api_registrar_ponto' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({ id_usuario: id })
+        })
+        .then(resp => resp.json())
+        .then(data => {
+            if (data.status === "registrado") {
+                alert("Ponto registrado com sucesso!");
+                location.reload();
+            } else {
+                alert("Erro ao registrar ponto.");
+            }
+        });
+}
+</script>
+{% endblock %}

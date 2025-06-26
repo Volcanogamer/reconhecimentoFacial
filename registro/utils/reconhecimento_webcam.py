@@ -117,6 +117,24 @@ class ReconhecimentoCamera:
         # Após registro, libera a câmera
         self.video.release()
 
-    def __del__(self):
-        if hasattr(self, 'video') and self.video is not None:
-            self.video.release()
+    def reconhecer_numpy(self, frame):
+        from PIL import Image
+        import cv2
+        import torch
+
+        img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        face_tensor = self.mtcnn(img)
+
+        if face_tensor is not None:
+            with torch.no_grad():
+                emb_novo = self.resnet(face_tensor.unsqueeze(0)).squeeze(0)
+
+            distancias = [torch.norm(emb_novo - emb) for emb in self.embeddings]
+            menor_dist = min(distancias)
+            idx = distancias.index(menor_dist)
+
+            if menor_dist < self.threshold:
+                usuario = self.usuarios[idx]
+                return usuario.id, usuario.nome
+
+        return None, None
