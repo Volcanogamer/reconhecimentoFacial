@@ -341,6 +341,7 @@ def api_reconhecimento_rosto(request):
 
     return JsonResponse({"status": "erro", "mensagem": "Método inválido"}, status=405)
 
+
 @csrf_exempt
 def api_registrar_ponto(request):
     print("Chamando a view registrar_ponto")
@@ -353,19 +354,34 @@ def api_registrar_ponto(request):
         if not id_usuario:
             return JsonResponse({'status': 'erro', 'mensagem': 'ID do usuário não informado'}, status=400)
 
-        # Usa o campo correto do seu modelo
         usuario = Usuario.objects.get(id=id_usuario)
-
         agora = localtime()
+
+        # Verifica o último registro do dia
+        ultimo_registro = RegistroPonto.objects.filter(
+            usuario=usuario,
+            data=agora.date()
+        ).order_by('-hora').first()
+
+        # Alterna entre entrada e saída
+        if ultimo_registro and ultimo_registro.tipo == 'entrada':
+            tipo = 'saida'
+        else:
+            tipo = 'entrada'
 
         RegistroPonto.objects.create(
             usuario=usuario,
             data=agora.date(),
             hora=agora.time(),
-            tipo='entrada'  # ou lógica dinâmica
+            tipo=tipo
         )
 
-        return JsonResponse({'status': 'registrado'})
+        return JsonResponse({
+            'status': 'registrado',
+            'nome': usuario.nome,
+            'tipo': tipo,
+            'hora': agora.strftime('%H:%M')
+        })
 
     except Usuario.DoesNotExist:
         return JsonResponse({'status': 'erro', 'mensagem': 'Usuário não encontrado'}, status=404)

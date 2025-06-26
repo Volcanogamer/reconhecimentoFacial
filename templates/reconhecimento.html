@@ -1,35 +1,117 @@
 {% extends 'base.html' %}
 {% block content %}
+<style>
+    body {
+        background-color: #0d1b2a !important;
+        color: #f0f4f8 !important;
+    }
+
+    /* Estilização dos modais para manter padrão escuro */
+    .modal-content {
+        background-color: #1b263b !important;
+        color: #f0f4f8 !important;
+        border: none;
+    }
+
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        border: none !important;
+    }
+
+    .modal-backdrop.show {
+        background-color: rgba(13, 27, 42, 0.9);
+    }
+
+    /* Texto do contador também no mesmo padrão */
+    #contador {
+        color: #f0f4f8;
+        font-size: 1.5rem;
+        margin-top: 10px;
+    }
+
+    .btn-success {
+        background-color: #2f9e44;
+        border: none;
+    }
+
+    .btn-success:hover {
+        background-color: #37b24d;
+    }
+
+    .btn {
+        color: white;
+    }
+</style>
+
 <div style="text-align:center;">
     <h1>Reconhecimento Facial</h1>
 
     <!-- Exibe o vídeo da câmera -->
-    <video id="camera" autoplay playsinline width="640" height="480"></video>
+    <video id="camera" autoplay playsinline width="640" height="480" style="transform: scaleX(-1);"></video>
 
-    <!-- Preview da imagem reconhecida -->
-    <div id="preview" style="margin-top: 20px; display:none;">
-        <h3 id="nome-usuario"></h3>
-        <img id="rosto-capturado" src="" width="200" />
-        <br>
-        <button id="confirmar-btn" class="btn btn-success mt-3">Confirmar Registro</button>
+    <!-- Contagem regressiva -->
+    <div id="contador" class="mt-3 fs-4 fw-bold"></div>
+
+    <!-- Modal de Confirmação -->
+    <div class="modal fade" id="modalConfirmacao" tabindex="-1" role="dialog" aria-labelledby="modalConfirmacaoLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content" style="background-color: #1b263b; color: #f0f4f8;">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title w-100 text-center" id="modalConfirmacaoLabel">Confirmar Registro de Ponto
+                    </h5>
+                </div>
+                <div class="modal-body d-flex flex-column align-items-center justify-content-center text-center">
+                    <p id="nome-usuario" class="mb-3"></p>
+                    <img id="rosto-capturado" src="" width="200" class="rounded mb-3" />
+                    <button id="confirmar-btn" class="btn btn-success">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Sucesso -->
+    <div class="modal fade" id="modalSucesso" tabindex="-1" role="dialog" aria-labelledby="modalSucessoLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content" style="background-color: #1b263b; color: #f0f4f8;">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title" id="modalSucessoLabel">Registro Concluído</h5>
+                </div>
+                <div class="modal-body text-center">
+                    <p id="mensagem-sucesso" class="fw-bold"></p>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
+<!-- Bootstrap CSS e JS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
     const video = document.getElementById("camera");
-    const preview = document.getElementById("preview");
+    const contador = document.getElementById("contador");
     const imgPreview = document.getElementById("rosto-capturado");
     const nomeUsuario = document.getElementById("nome-usuario");
     const btnConfirmar = document.getElementById("confirmar-btn");
 
-    // Inicia a câmera
     navigator.mediaDevices.getUserMedia({ video: true })
         .then(stream => {
             video.srcObject = stream;
 
-            // Espera 3 segundos e envia frame para o backend
-            setTimeout(() => {
-                capturarImagem();
+            // Contagem regressiva antes do reconhecimento
+            let tempo = 5;
+            const intervalo = setInterval(() => {
+                contador.innerText = `Capturando imagem em ${tempo}...`;
+                tempo--;
+                if (tempo < 0) {
+                    clearInterval(intervalo);
+                    contador.innerText = "";
+                    capturarImagem();
+                }
             }, 1000);
         })
         .catch(err => {
@@ -41,10 +123,8 @@
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         canvas.getContext("2d").drawImage(video, 0, 0);
-
         const imagemBase64 = canvas.toDataURL("image/jpeg");
 
-        // Envia imagem para backend para reconhecimento
         fetch("{% url 'api_reconhecimento_rosto' %}", {
             method: "POST",
             headers: {
@@ -55,14 +135,15 @@
         })
             .then(resp => resp.json())
             .then(data => {
-                console.log("Resposta da API de reconhecimento:", data);
                 if (data.status === "ok") {
                     nomeUsuario.innerText = "Usuário: " + data.nome;
                     imgPreview.src = imagemBase64;
-                    preview.style.display = "block";
+
+                    const modalConfirmacao = new bootstrap.Modal(document.getElementById("modalConfirmacao"));
+                    modalConfirmacao.show();
 
                     btnConfirmar.onclick = () => {
-                        registrarPonto(data.id_usuario);
+                        registrarPonto(data.id_usuario, data.nome, modalConfirmacao);
                     };
                 } else {
                     alert("Usuário não reconhecido.");
@@ -70,8 +151,7 @@
             });
     }
 
-    function registrarPonto(id) {
-        console.log("Tentando registrar em:", "{% url 'api_registrar_ponto' %}");
+    function registrarPonto(id, nome, modalConfirmacao) {
         fetch("{% url 'api_registrar_ponto' %}", {
             method: "POST",
             headers: {
@@ -80,15 +160,27 @@
             },
             body: JSON.stringify({ id_usuario: id })
         })
-        .then(resp => resp.json())
-        .then(data => {
-            if (data.status === "registrado") {
-                alert("Ponto registrado com sucesso!");
-                location.reload();
-            } else {
-                alert("Erro ao registrar ponto.");
-            }
-        });
-}
+            .then(resp => resp.json())
+            .then(data => {
+                if (data.status === "registrado") {
+                    modalConfirmacao.hide();
+
+                    const agora = new Date();
+                    const tipo = data.tipo === "entrada" ? "Entrada" : "Saída";
+                    const hora = agora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const mensagem = `${nome} — ${tipo} registrada às ${hora}`;
+                    document.getElementById("mensagem-sucesso").innerText = mensagem;
+
+                    const modalSucesso = new bootstrap.Modal(document.getElementById("modalSucesso"));
+                    modalSucesso.show();
+
+                    setTimeout(() => {
+                        window.location.href = "{% url 'index' %}";
+                    }, 2000); // 2 segundos antes de redirecionar
+                } else {
+                    alert("Erro ao registrar ponto.");
+                }
+            });
+    }
 </script>
 {% endblock %}
