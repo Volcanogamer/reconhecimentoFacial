@@ -31,11 +31,8 @@ class ReconhecimentoCamera:
                     self.embeddings.append(torch.tensor(emb))
                     self.usuarios.append(t.usuario)
 
-    def gerar_frames(self):
+    def reconhecer_usuario(self):
         while True:
-            if self.registrado:
-                break
-
             ret, frame = self.video.read()
             if not ret:
                 break
@@ -45,7 +42,6 @@ class ReconhecimentoCamera:
             img = Image.fromarray(rgb_frame)
 
             face_tensor = self.mtcnn(img)
-            nome = 'Desconhecido'
 
             if face_tensor is not None:
                 with torch.no_grad():
@@ -57,71 +53,40 @@ class ReconhecimentoCamera:
 
                 if menor_dist < self.threshold:
                     usuario = self.usuarios[idx]
-                    nome = usuario.nome
-                    dist = menor_dist.item()
+                    self.video.release()
+                    return usuario, frame
 
-                    if nome not in self.dist_suavizadas:
-                        self.dist_suavizadas[nome] = dist
-                    else:
-                        self.dist_suavizadas[nome] = self.alpha * dist + (1 - self.alpha) * self.dist_suavizadas[nome]
+            cv2.putText(frame, 'Reconhecendo...', (10, 50), self.font, 0.9, (255, 255, 255), 2)
+            cv2.imshow('Reconhecimento Facial', frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
 
-                    dist_exibida = self.dist_suavizadas[nome]
-                    dist_exibida = (dist_exibida - 1)*(-1)
-
-                    agora = datetime.now()
-                    hoje = agora.date()
-
-                    registros = RegistroPonto.objects.filter(usuario=usuario, data=hoje).order_by('-hora')
-
-                    proximo_tipo = 'entrada'
-                    registrar = True
-
-                    if registros.exists():
-                        ultimo = registros.first()
-                        delta = datetime.combine(hoje, agora.time()) - datetime.combine(hoje, ultimo.hora)
-                        
-                        if delta.total_seconds() < 10: # Intervalo necessário após uma detecção
-                            registrar = False
-                            mensagem = f"Aguarde {int(10 - delta.total_seconds())}s para novo registro"
-                        else:
-                            proximo_tipo = 'saida' if ultimo.tipo == 'entrada' else 'entrada'
-                            RegistroPonto.objects.create(
-                                usuario=usuario,
-                                data=hoje,
-                                hora=agora.time(),
-                                tipo=proximo_tipo
-                            )
-                            mensagem = f"{proximo_tipo.capitalize()} registrada com sucesso para {nome}"
-                            self.registrado = True
-                    else:
-                        RegistroPonto.objects.create(
-                            usuario=usuario,
-                            data=hoje,
-                            hora=agora.time(),
-                            tipo='entrada'
-                        )
-                        mensagem = f"Entrada registrada com sucesso para {nome}"
-                        self.registrado = True
-
-                    cor = (0, 255, 0) if registrar else (0, 140, 255)
-                    cv2.putText(frame, mensagem, (10, 50), self.font, 0.7, cor, 2)
-
-                else:
-                    cv2.putText(frame, 'Desconhecido', (10, 50), self.font, 0.9, (0, 0, 255), 2)
-            else:
-                cv2.putText(frame, 'Nenhuma face detectada', (10, 50), self.font, 0.9, (0, 0, 255), 2)
-
-            ret, jpeg = cv2.imencode('.jpg', frame)
-            yield jpeg.tobytes()
-
-        # Após registro, libera a câmera
         self.video.release()
+        cv2.destroyAllWindows()
+        return None, None
+
+    def registrar_ponto(self, usuario):
+        agora = datetime.now()
+        hoje = agora.date()
+
+        registros = RegistroPonto.objects.filter(usuario=usuario, data=hoje).order_by('-hora')
+
+        if registros.exists():
+            ultimo = registros.first()
+            tipo = 'saida' if ultimo.tipo == 'entrada' else 'entrada'
+        else:
+            tipo = 'entrada'
+
+        RegistroPonto.objects.create(
+            usuario=usuario,
+            data=hoje,
+            hora=agora.time(),
+            tipo=tipo
+        )
+
+        return tipo
 
     def reconhecer_numpy(self, frame):
-        from PIL import Image
-        import cv2
-        import torch
-
         img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
         face_tensor = self.mtcnn(img)
 
@@ -138,3 +103,7 @@ class ReconhecimentoCamera:
                 return usuario.id, usuario.nome
 
         return None, None
+
+    def liberar_camera(self):
+        self.video.release()
+        cv2.destroyAllWindows()

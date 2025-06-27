@@ -391,3 +391,36 @@ def api_registrar_ponto(request):
 
     except Exception as e:
         return JsonResponse({'status': 'erro', 'mensagem': f'Erro interno: {str(e)}'}, status=500)
+    
+@csrf_exempt
+def ver_resumo_reconhecimento(request):
+    if request.method == "POST":
+        dados = json.loads(request.body)
+        imagem_base64 = dados['imagem'].split(',')[1]
+        img_bytes = base64.b64decode(imagem_base64)
+        nparr = np.frombuffer(img_bytes, np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        reconhecedor = ReconhecimentoCamera()
+        usuario_id, nome = reconhecedor.reconhecer_numpy(frame)
+
+        if usuario_id:
+            registros = RegistroPonto.objects.filter(usuario_id=usuario_id).order_by('-data', '-hora')
+            lista = [
+                {
+                    'data': r.data.strftime('%d/%m/%Y'),
+                    'hora': r.hora.strftime('%H:%M:%S'),
+                    'tipo': r.tipo
+                } for r in registros
+            ]
+
+            return JsonResponse({
+                'sucesso': True,
+                'nome': nome,
+                'registros': lista
+            })
+        else:
+            return JsonResponse({'sucesso': False})
+
+def ver_resumo(request):
+    return render(request, 'ver_resumo.html')

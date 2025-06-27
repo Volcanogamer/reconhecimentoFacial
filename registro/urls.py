@@ -48,6 +48,10 @@ urlpatterns = [
     path('reconhecimento/', views.reconhecimento_view, name='reconhecimento'),
     path('video_reconhecimento/', views.video_reconhecimento, name='video_reconhecimento'),
     
+    # Resumo Usuario
+    path('resumo/', views.ver_resumo, name='ver_resumo'),
+    path('resumo/reconhecimento/', views.ver_resumo_reconhecimento, name='ver_resumo_reconhecimento'),
+    
     # Rota do DRF por último para evitar conflito
     path('api/', include(router.urls)),
 ]
