@@ -1,12 +1,12 @@
 import cv2
 import os
+from registro.camera import VideoCamera
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import render, redirect, get_object_or_404
 from .forms import UsuarioForm, ColetaFacesForm
 from .models import Usuario, ColetaFaces, Treinamento, RegistroPonto
 from django.http import StreamingHttpResponse
-from registro.camera import VideoCamera
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from django.utils import timezone
@@ -15,6 +15,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.template.loader import render_to_string
 from django.http import JsonResponse
 from django.utils.timezone import localtime
+from django.conf import settings
 import json
 import base64
 import numpy as np
@@ -89,6 +90,9 @@ def criar_coleta_faces(request, usuario_id):
     usuario = get_object_or_404(Usuario, id=usuario_id)
     botao_clicado = request.GET.get("clicked", "False") == "True"
 
+    # Instancia a câmera correta (com get_camera e sample_faces)
+    camera_detection = VideoCamera()
+
     legendas = [
         "Olhe diretamente para a camera (frente)",
         "Incline levemente a cabeca para a esquerda",
@@ -98,39 +102,35 @@ def criar_coleta_faces(request, usuario_id):
         "Mantenha uma expressao neutra e relaxada",
     ]
 
-    if "foto_passos" not in request.session:
-        request.session["foto_passos"] = 0
-
-    passo_atual = request.session["foto_passos"]
+    total_coletas = ColetaFaces.objects.filter(usuario__id_usuario=usuario.id_usuario).count()
+    legenda = legendas[total_coletas] if total_coletas < len(legendas) else "Todas as fotos foram coletadas."
 
     context = {
         "usuario": usuario,
         "face_detection": face_detection,
         "valor_botao": botao_clicado,
         "extracao_ok": False,
-        "file_paths": ColetaFaces.objects.filter(
-            usuario__id_usuario=usuario.id_usuario
-        ),
+        "file_paths": ColetaFaces.objects.filter(usuario__id_usuario=usuario.id_usuario),
         "erro": None,
+        "legenda_orientacao": legenda,
     }
 
     if botao_clicado:
-        sucesso = face_extract(context, usuario)
+        try:
+            sucesso = face_extract(context, usuario, camera_detection)
+        except Exception as e:
+            context["erro"] = f"Erro ao extrair imagem: {str(e)}"
+            sucesso = False
+
         if sucesso:
-            if passo_atual < 5:
-                request.session["foto_passos"] = passo_atual + 1
-                request.session.modified = True
-                passo_atual += 1
-            else:
+            total_coletas += 1
+            if total_coletas >= len(legendas):
                 context["extracao_ok"] = True
-                del request.session["foto_passos"]
+                camera_detection.__del__()
+            else:
+                context["legenda_orientacao"] = legendas[total_coletas]
 
-                # Força a destruição do objeto da câmera
-                global camera_detection
-                del camera_detection
-
-    # Atualiza a legenda corretamente após tirar a foto
-    context["legenda_orientacao"] = legendas[passo_atual]
+        context["file_paths"] = ColetaFaces.objects.filter(usuario__id_usuario=usuario.id_usuario)
 
     return render(request, "criar_coleta_faces.html", context)
 
@@ -157,7 +157,7 @@ def extract(camera_detection, usuario):
         print("Face nao encontrada.")
         return None
 
-def face_extract(context, usuario):
+def face_extract(context, usuario, camera_detection):
     coletas = ColetaFaces.objects.filter(usuario__id_usuario=usuario.id_usuario)
     for coleta in coletas:
         if coleta.image and not os.path.isfile(coleta.image.path):
@@ -300,8 +300,25 @@ def salvar_usuario(request, id):
 def remover_fotos_coleta_selecionadas(request, id_usuario):
     if request.method == 'POST':
         fotos_ids = request.POST.getlist('fotos_remover')
+
+        # Remove do banco
         ColetaFaces.objects.filter(id__in=fotos_ids).delete()
-        messages.success(request, "Fotos removidas com sucesso!")
+
+        # Caminho para a pasta roi do usuário
+        pasta_roi = os.path.join(settings.MEDIA_ROOT, 'roi', str(id_usuario))
+
+        # Remove todos os arquivos da pasta, se existir
+        if os.path.exists(pasta_roi):
+            try:
+                for arquivo in os.listdir(pasta_roi):
+                    caminho_arquivo = os.path.join(pasta_roi, arquivo)
+                    if os.path.isfile(caminho_arquivo):
+                        os.remove(caminho_arquivo)
+                messages.success(request, "Fotos removidas com sucesso!")
+            except Exception as e:
+                messages.error(request, f"Erro ao remover arquivos: {e}")
+        else:
+            messages.info(request, "Pasta de imagens não encontrada.")
 
     return redirect('/dashboard/')
 
@@ -318,7 +335,6 @@ def treinar_usuarios_ativos(request):
 @csrf_exempt
 def api_reconhecimento_rosto(request):
     if request.method == 'POST':
-
         data = json.loads(request.body)
         imagem_base64 = data.get("imagem")
 
@@ -335,7 +351,19 @@ def api_reconhecimento_rosto(request):
         usuario_id, nome = reconhecedor.reconhecer_numpy(frame)
 
         if usuario_id:
-            return JsonResponse({"status": "ok", "id_usuario": usuario_id, "nome": nome})
+            try:
+                usuario = Usuario.objects.get(id=usuario_id)
+
+                if not usuario.situacao:  # se situacao for 0 (invalido)
+                    return JsonResponse({
+                        "status": "invalido",
+                        "mensagem": "Situação inválida. Procure o administrador."
+                    })
+
+                return JsonResponse({"status": "ok", "id_usuario": usuario_id, "nome": nome})
+
+            except Usuario.DoesNotExist:
+                return JsonResponse({"status": "erro", "mensagem": "Usuário não encontrado"}, status=404)
         else:
             return JsonResponse({"status": "falha", "mensagem": "Usuário não reconhecido"})
 
